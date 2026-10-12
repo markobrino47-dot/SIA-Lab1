@@ -1,0 +1,21 @@
+{
+  "name": "integration-basics-node",
+  "version": "1.0.0",
+  "description": "Node.js API gateway for Python worker integration lab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "node",
+    "python",
+    "integration",
+    "rest"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.19.2"
+  }
+}
