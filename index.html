@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator | Integration Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f7f3;
+      --muted: #85877f;
+      --panel: #171916;
+      --key: #292c27;
+      --key-hover: #383c35;
+      --lime: #d2f36b;
+      --line: rgba(255, 255, 255, .1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 36px 18px;
+      display: grid;
+      place-items: center;
+      color: #21241d;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background-color: #e8eadf;
+      background-image: radial-gradient(rgba(39, 46, 30, .11) .7px, transparent .7px);
+      background-size: 15px 15px;
+    }
+    .layout {
+      width: min(100%, 390px);
+      animation: arrive .55s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .caption {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 7px 13px;
+      color: #51564a;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .caption span:last-child { color: #858a7a; }
+    .calculator {
+      overflow: hidden;
+      padding: 23px 21px 21px;
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 29px;
+      background: var(--panel);
+      box-shadow: 0 28px 65px rgba(40, 47, 30, .23), 0 5px 15px rgba(40,47,30,.12);
+    }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .brand { color: #e3e5dd; font-weight: 700; letter-spacing: 0; }
+    .status { display: inline-flex; align-items: center; gap: 7px; }
+    .status::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--lime);
+      content: "";
+      box-shadow: 0 0 10px rgba(210,243,107,.48);
+    }
+    .status.error::before { background: #ff8a71; box-shadow: none; }
+    .screen {
+      min-height: 178px;
+      padding: 29px 3px 21px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      text-align: right;
+    }
+    .screen-tools { width: 100%; display: flex; justify-content: flex-start; }
+    button.screen-action {
+      width: 34px;
+      height: 34px;
+      aspect-ratio: auto;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--lime);
+      background: transparent;
+      font-size: 17px;
+    }
+    .expression {
+      min-height: 23px;
+      max-width: 100%;
+      overflow: hidden;
+      color: #979b90;
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .display {
+      width: 100%;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: clamp(48px, 14vw, 68px);
+      font-weight: 300;
+      line-height: 1.12;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .extra-operations {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+    button.extra-operation {
+      width: 48px;
+      height: 32px;
+      aspect-ratio: auto;
+      border-radius: 16px;
+      color: var(--lime);
+      background: #303626;
+      font-size: 13px;
+    }
+    button {
+      min-width: 0;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 50%;
+      color: var(--ink);
+      background: var(--key);
+      font: inherit;
+      font-size: 22px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform .12s ease, background-color .12s ease, color .12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:hover { background: var(--key-hover); }
+    button:active { transform: scale(.93); }
+    button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+    button.utility { color: #d8dbd1; background: #3a3d36; font-size: 17px; }
+    button.operator { color: var(--lime); background: #303626; font-size: 25px; }
+    button.operator[aria-pressed="true"] { color: #20251a; background: var(--lime); }
+    button.equals { color: #20251a; background: var(--lime); font-size: 27px; }
+    button.equals:hover { background: #e0ff8a; }
+    button.zero { grid-column: span 2; aspect-ratio: auto; border-radius: 999px; text-align: left; padding-left: 28px; }
+    .footnote {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 16px 3px 0;
+      color: #73786b;
+      font-size: 10px;
+    }
+    .history-panel {
+      margin-top: 14px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: 0 14px 35px rgba(40, 47, 30, .14);
+      color: var(--ink);
+    }
+    .history-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .history-heading h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    button.history-refresh {
+      width: 32px;
+      height: 32px;
+      aspect-ratio: auto;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--lime);
+      background: transparent;
+      font-size: 17px;
+    }
+    .history-status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .history-list {
+      display: grid;
+      gap: 1px;
+      max-height: 260px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 2px;
+      border-bottom: 1px solid var(--line);
+    }
+    .history-item:last-child { border-bottom: 0; }
+    .history-expression {
+      overflow: hidden;
+      color: #e3e5dd;
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .history-time {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .history-result {
+      flex: 0 0 auto;
+      color: var(--lime);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(12px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (max-width: 420px) {
+      body { padding: 18px 13px; }
+      .calculator { padding: 20px 17px 17px; border-radius: 25px; }
+      .keypad { gap: 9px; }
+      .screen { min-height: 165px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <div class="caption"><span>Integration lab</span><span>01 / Calculator</span></div>
+    <section class="calculator" aria-label="Calculator">
+      <div class="topline">
+        <span class="brand">CALC / NODE + PYTHON</span>
+        <span class="status" id="serviceStatus" role="status">Connected</span>
+      </div>
+      <div class="screen" aria-live="polite" aria-atomic="true">
+        <div class="screen-tools"><button class="screen-action" id="squareRoot" type="button" aria-label="Square root">√</button></div>
+        <div class="expression" id="expression"></div>
+        <output class="display" id="display">0</output>
+      </div>
+      <div class="extra-operations" aria-label="Additional operations">
+        <button class="extra-operation" type="button" data-operation="modulo" aria-label="Modulo">mod</button>
+        <button class="extra-operation" type="button" data-operation="power" aria-label="Power">xʸ</button>
+      </div>
+      <div class="keypad" aria-label="Calculator keypad">
+        <button class="utility" type="button" data-action="clear" aria-label="All clear">AC</button>
+        <button class="utility" type="button" data-action="sign" aria-label="Change sign">+/−</button>
+        <button class="utility" type="button" data-action="percent" aria-label="Percent">%</button>
+        <button class="operator" type="button" data-operation="divide" aria-label="Divide">÷</button>
+        <button type="button" data-digit="7">7</button>
+        <button type="button" data-digit="8">8</button>
+        <button type="button" data-digit="9">9</button>
+        <button class="operator" type="button" data-operation="multiply" aria-label="Multiply">×</button>
+        <button type="button" data-digit="4">4</button>
+        <button type="button" data-digit="5">5</button>
+        <button type="button" data-digit="6">6</button>
+        <button class="operator" type="button" data-operation="subtract" aria-label="Subtract">−</button>
+        <button type="button" data-digit="1">1</button>
+        <button type="button" data-digit="2">2</button>
+        <button type="button" data-digit="3">3</button>
+        <button class="operator" type="button" data-operation="add" aria-label="Add">+</button>
+        <button class="zero" type="button" data-digit="0">0</button>
+        <button type="button" data-action="decimal" aria-label="Decimal point">.</button>
+        <button class="equals" type="button" data-action="equals" aria-label="Equals">=</button>
+      </div>
+    </section>
+    <section class="history-panel" aria-labelledby="historyTitle">
+      <div class="history-heading">
+        <h2 id="historyTitle">Calculation history</h2>
+        <button class="history-refresh" id="refreshHistory" type="button" aria-label="Refresh calculation history">↻</button>
+      </div>
+      <p class="history-status" id="historyStatus" role="status" aria-live="polite">Loading history...</p>
+      <ol class="history-list" id="historyList"></ol>
+    </section>
+    <div class="footnote"><span>Powered by the integration gateway</span><span>Enter to calculate · Esc to clear</span></div>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+    const expression = document.getElementById('expression');
+    const serviceStatus = document.getElementById('serviceStatus');
+    const historyStatus = document.getElementById('historyStatus');
+    const historyList = document.getElementById('historyList');
+    const buttons = document.querySelectorAll('[data-operation]');
+    let storedValue = null;
+    let pendingOperation = null;
+    let waitingForOperand = false;
+    let displayValue = '0';
+
+    const operationSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷', modulo: 'mod', power: '^' };
+
+    function historyExpression(entry) {
+      if (entry.operation === 'square_root') return `√(${entry.num1})`;
+      const symbol = operationSymbols[entry.operation] || entry.operation;
+      return `${entry.num1} ${symbol} ${entry.num2}`;
+    }
+
+    function renderHistory(history) {
+      historyList.replaceChildren();
+      const entries = [...history].reverse();
+      historyStatus.textContent = entries.length ? '' : 'No calculations yet.';
+
+      entries.forEach((entry) => {
+        const item = document.createElement('li');
+        item.className = 'history-item';
+
+        const details = document.createElement('div');
+        const equation = document.createElement('div');
+        equation.className = 'history-expression';
+        equation.textContent = historyExpression(entry);
+
+        const timestamp = document.createElement('div');
+        timestamp.className = 'history-time';
+        const date = new Date(entry.timestamp);
+        timestamp.textContent = Number.isNaN(date.getTime()) ? entry.timestamp : date.toLocaleString();
+
+        const result = document.createElement('div');
+        result.className = 'history-result';
+        result.textContent = `= ${entry.result}`;
+
+        details.append(equation, timestamp);
+        item.append(details, result);
+        historyList.append(item);
+      });
+    }
+
+    async function loadHistory() {
+      historyStatus.textContent = 'Loading history...';
+      try {
+        const response = await fetch('/api/history');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load calculation history');
+        if (!Array.isArray(data.history)) throw new Error('Invalid calculation history response');
+        renderHistory(data.history);
+      } catch (error) {
+        historyStatus.textContent = `Unable to load history. ${error.message}`;
+      }
+    }
+
+    function render() {
+      display.textContent = displayValue;
+      buttons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.operation === pendingOperation));
+      });
+    }
+
+    function enterDigit(digit) {
+      displayValue = waitingForOperand || displayValue === '0' || displayValue === 'Error' ? digit : displayValue + digit;
+      waitingForOperand = false;
+      if (pendingOperation && storedValue !== null) {
+        expression.textContent = `${storedValue} ${operationSymbols[pendingOperation]} ${displayValue}`;
+      }
+      render();
+    }
+
+    function clear() {
+      displayValue = '0';
+      storedValue = null;
+      pendingOperation = null;
+      waitingForOperand = false;
+      expression.textContent = '';
+      serviceStatus.textContent = 'Connected';
+      serviceStatus.classList.remove('error');
+      render();
+    }
+
+    async function calculate(num1, num2, operation) {
+      serviceStatus.textContent = 'Calculating';
+      serviceStatus.classList.remove('error');
+      try {
+        const response = await fetch('/api/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ num1, num2, operation })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Calculation failed');
+        loadHistory();
+        const result = data.python_result.result;
+        if (typeof result === 'string' && result.startsWith('Error:')) throw new Error(result);
+        displayValue = String(result);
+        serviceStatus.textContent = 'Connected';
+        return Number(result);
+      } catch (error) {
+        displayValue = 'Error';
+        if (window.location.protocol === 'file:') {
+          serviceStatus.textContent = 'Open http://localhost:3000';
+        } else {
+          serviceStatus.textContent = error.message.includes('fetch') ? 'Gateway offline' : error.message;
+        }
+        serviceStatus.classList.add('error');
+        return null;
+      } finally {
+        render();
+      }
+    }
+
+    async function chooseOperation(operation) {
+      const current = Number(displayValue);
+      if (pendingOperation && !waitingForOperand && storedValue !== null) {
+        const result = await calculate(storedValue, current, pendingOperation);
+        if (result === null) return;
+        storedValue = result;
+      } else {
+        storedValue = current;
+      }
+      pendingOperation = operation;
+      waitingForOperand = true;
+      expression.textContent = `${displayValue} ${operationSymbols[operation]}`;
+      render();
+    }
+
+    async function equals() {
+      if (!pendingOperation || storedValue === null || waitingForOperand) return;
+      const first = storedValue;
+      const second = Number(displayValue);
+      const symbol = operationSymbols[pendingOperation];
+      const result = await calculate(first, second, pendingOperation);
+      if (result !== null) {
+        expression.textContent = `${first} ${symbol} ${second} =`;
+        storedValue = null;
+        pendingOperation = null;
+        waitingForOperand = true;
+      }
+    }
+
+    async function squareRoot() {
+      const value = Number(displayValue);
+      expression.textContent = `√(${displayValue})`;
+      const result = await calculate(value, 0, 'square_root');
+      if (result !== null) waitingForOperand = true;
+    }
+
+    function activate(button) {
+      if (button.dataset.digit !== undefined) return enterDigit(button.dataset.digit);
+      if (button.dataset.operation) return chooseOperation(button.dataset.operation);
+      switch (button.dataset.action) {
+        case 'clear': clear(); break;
+        case 'sign': displayValue = String(Number(displayValue) * -1); render(); break;
+        case 'percent': displayValue = String(Number(displayValue) / 100); render(); break;
+        case 'decimal':
+          if (waitingForOperand) { displayValue = '0.'; waitingForOperand = false; }
+          else if (!displayValue.includes('.')) displayValue += '.';
+          render();
+          break;
+        case 'equals': equals(); break;
+      }
+    }
+
+    document.querySelector('.calculator').addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (button) activate(button);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (/^[0-9]$/.test(event.key)) enterDigit(event.key);
+      else if (event.key === '.') activate({ dataset: { action: 'decimal' } });
+      else if (event.key === 'Enter' || event.key === '=') equals();
+      else if (event.key === 'Escape') clear();
+      else if (event.key === 'Backspace') displayValue = displayValue.length > 1 ? displayValue.slice(0, -1) : '0', render();
+      else if (event.key === '+') chooseOperation('add');
+      else if (event.key === '-') chooseOperation('subtract');
+      else if (event.key === '*') chooseOperation('multiply');
+      else if (event.key === '/') { event.preventDefault(); chooseOperation('divide'); }
+    });
+
+    document.getElementById('squareRoot').addEventListener('click', squareRoot);
+    document.getElementById('refreshHistory').addEventListener('click', loadHistory);
+    render();
+    loadHistory();
+  </script>
+</body>
+</html>
